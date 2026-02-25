@@ -42,16 +42,21 @@ th { background:#007bff; color:white; }
 </div>
 
 <script>
-const appsScriptURL = "https://script.google.com/macros/s/AKfycbyY_2grKmI_-_bdL1-lVJwQfNWkyoRFqIXr88r8VAYN-3xhE2atl6038A6vJ1Vk_o1Ykw/exec"; // remplace ici
+// 🔹 Remplace par ton lien Apps Script
+const appsScriptURL = "https://script.google.com/macros/s/AKfycbx25ykoacsMwqsWZKbAJc16zMetju-wVlAiGgKhVMB4cCWesmuiiNCVFX5LPqOVGM4KCA/exec";
 
 function fillTable(data, tableId, isPercent=false){
     const table = document.getElementById(tableId);
     table.innerHTML = "";
     if(!data || data.length===0) return;
+
+    // En-têtes
     let headerRow = "<tr>";
     Object.keys(data[0]).forEach(k=> headerRow += `<th>${k}</th>`);
     headerRow += "</tr>";
     table.innerHTML += headerRow;
+
+    // Lignes
     data.forEach(row=>{
         let rowHTML = "<tr>";
         Object.values(row).forEach(cell=>{
@@ -67,7 +72,7 @@ function fillTable(data, tableId, isPercent=false){
     });
 }
 
-// Charger les données live depuis Apps Script
+// 🔹 Charger les données live depuis Apps Script
 fetch(appsScriptURL)
 .then(res=>res.json())
 .then(json=>{
@@ -75,7 +80,7 @@ fetch(appsScriptURL)
     fillTable(json.Objectifs,"tableObjectifs");
     fillTable(json.Réalisations,"tableRealisations");
 
-    // Graphique
+    // 🔹 Graphique
     const labels = json.Calcul.map(r=>r.Commerciale);
     const totalB = json.Calcul.map(r=>r["Total Bières"]);
     const totalV = json.Calcul.map(r=>r["Total Vin"]);
@@ -97,4 +102,3 @@ fetch(appsScriptURL)
 
 </body>
 </html>
-
