@@ -42,20 +42,16 @@ th { background:#007bff; color:white; }
 </div>
 
 <script>
-const appsScriptURL = "https://script.google.com/macros/s/AKfycbze6Bq5CspLq5cPPZwECUOScb4_2M2289nVK377itDFEbLpr5YIzYkE7gDnpWbtlKdQpw/exec"; // remplace par ton lien Apps Script
+const appsScriptURL = "https://script.google.com/macros/s/AKfycbyY_2grKmI_-_bdL1-lVJwQfNWkyoRFqIXr88r8VAYN-3xhE2atl6038A6vJ1Vk_o1Ykw/exec"; // remplace ici
 
 function fillTable(data, tableId, isPercent=false){
     const table = document.getElementById(tableId);
     table.innerHTML = "";
     if(!data || data.length===0) return;
-
-    // En-têtes
     let headerRow = "<tr>";
     Object.keys(data[0]).forEach(k=> headerRow += `<th>${k}</th>`);
     headerRow += "</tr>";
     table.innerHTML += headerRow;
-
-    // Lignes
     data.forEach(row=>{
         let rowHTML = "<tr>";
         Object.values(row).forEach(cell=>{
@@ -71,7 +67,7 @@ function fillTable(data, tableId, isPercent=false){
     });
 }
 
-// Charger les données depuis Apps Script
+// Charger les données live depuis Apps Script
 fetch(appsScriptURL)
 .then(res=>res.json())
 .then(json=>{
@@ -93,14 +89,10 @@ fetch(appsScriptURL)
                 {label:"Total Vin", data:totalV, backgroundColor:"rgba(255,99,132,0.7)"}
             ]
         },
-        options:{
-            responsive:true,
-            plugins:{legend:{position:"top"}},
-            scales:{y:{beginAtZero:true}}
-        }
+        options:{responsive:true, plugins:{legend:{position:"top"}}, scales:{y:{beginAtZero:true}}}
     });
 })
-.catch(err=>console.error(err));
+.catch(err=>console.error("Erreur fetch Apps Script :", err));
 </script>
 
 </body>
