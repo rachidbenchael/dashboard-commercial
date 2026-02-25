@@ -5,15 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Commercial Live</title>
 
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f6f9; padding:20px; }
-h1 { text-align:center; }
-.card { background:white; padding:20px; border-radius:10px; margin-bottom:30px; box-shadow:0 4px 10px rgba(0,0,0,0.1);}
-table { width:100%; border-collapse:collapse; margin-top:10px;}
-th, td { border:1px solid #ccc; padding:8px; text-align:center;}
-th { background:#007bff; color:white;}
+body { 
+    font-family: Arial, sans-serif; 
+    background:#f4f6f9; 
+    padding:20px; 
+}
+h1 { 
+    text-align:center; 
+    margin-bottom:30px; 
+    color:#333;
+}
+.card { 
+    background:white; 
+    padding:20px; 
+    border-radius:10px; 
+    margin-bottom:30px; 
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+table { 
+    width:100%; 
+    border-collapse:collapse; 
+    margin-top:10px;
+}
+th, td { 
+    border:1px solid #ccc; 
+    padding:8px; 
+    text-align:center;
+}
+th { 
+    background:#007bff; 
+    color:white;
+}
 .green{color:green;font-weight:bold;}
 .orange{color:orange;font-weight:bold;}
 .red{color:red;font-weight:bold;}
@@ -24,7 +50,7 @@ th { background:#007bff; color:white;}
 <h1>📊 Dashboard Commercial</h1>
 
 <div class="card">
-<h3>📈 Taux d’atteinte</h3>
+<h3>📈 Taux d’atteinte (Calcul)</h3>
 <table id="tableCalcul"></table>
 </div>
 
@@ -44,25 +70,29 @@ th { background:#007bff; color:white;}
 </div>
 
 <script>
-
+// ID de ton Google Sheet
 const sheetID = "1Vo4SDCb_udwvpx10lucyxWeiFiaDy-LhNjw0cB5cNOM";
 
+// Fonction pour lire une feuille
 function fetchSheet(sheetName, callback){
     const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json&sheet=${sheetName}`;
     fetch(url)
     .then(res => res.text())
     .then(data => {
-        const json = JSON.parse(data.substr(47).slice(0,-2));
+        // Transformer la réponse google.visualization en JSON
+        const json = JSON.parse(data.substring(data.indexOf("{"), data.lastIndexOf("}")+1));
         const rows = json.table.rows.map(r => r.c.map(c => c ? c.v : ""));
         const headers = json.table.cols.map(col => col.label);
         callback(headers, rows);
-    });
+    })
+    .catch(err => console.error("Erreur CSV :", err));
 }
 
+// Fonction pour remplir un tableau HTML
 function fillTable(headers, rows, tableId, isPercent=false){
     const table = document.getElementById(tableId);
     table.innerHTML = "";
-    
+
     let headerRow = "<tr>";
     headers.forEach(h => headerRow += `<th>${h}</th>`);
     headerRow += "</tr>";
@@ -72,8 +102,8 @@ function fillTable(headers, rows, tableId, isPercent=false){
         let rowHTML = "<tr>";
         r.forEach(cell => {
             if(isPercent && typeof cell === "number"){
-                let color = cell >= 100 ? "green" : (cell >= 80 ? "orange" : "red");
-                rowHTML += `<td class="${color}">${cell}%</td>`;
+                let color = cell >= 1 ? "green" : (cell >= 0.8 ? "orange" : "red");
+                rowHTML += `<td class="${color}">${(cell*100).toFixed(2)}%</td>`;
             } else {
                 rowHTML += `<td>${cell}</td>`;
             }
@@ -83,13 +113,14 @@ function fillTable(headers, rows, tableId, isPercent=false){
     });
 }
 
-// Charger feuilles
+// Charger les feuilles
 fetchSheet("Calcul", (h,r)=>{
     fillTable(h,r,"tableCalcul",true);
 
-    const labels = r.map(row=>row[1]);
-    const totalB = r.map(row=>row[4]);
-    const totalV = r.map(row=>row[7]);
+    // Préparer le graphique
+    const labels = r.map(row=>row[1]); // Commerciale
+    const totalB = r.map(row=>row[4]*100); // Total Bières %
+    const totalV = r.map(row=>row[8]*100); // Total Vin %
 
     new Chart(document.getElementById("chart"),{
         type:"bar",
@@ -100,7 +131,18 @@ fetchSheet("Calcul", (h,r)=>{
                 {label:"Total Vin %", data:totalV, backgroundColor:"rgba(255,99,132,0.7)"}
             ]
         },
-        options:{responsive:true}
+        options:{
+            responsive:true,
+            plugins:{
+                legend:{position:"top"}
+            },
+            scales:{
+                y:{
+                    beginAtZero:true,
+                    max:Math.max(...totalB.concat(totalV))*1.2
+                }
+            }
+        }
     });
 });
 
@@ -108,5 +150,6 @@ fetchSheet("Objectifs", (h,r)=> fillTable(h,r,"tableObjectifs"));
 fetchSheet("Réalisations", (h,r)=> fillTable(h,r,"tableRealisations"));
 
 </script>
+
 </body>
 </html>
