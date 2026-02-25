@@ -4,17 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Commercial Live</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
 body { font-family: Arial; background:#f4f6f9; padding:20px; }
 h1 { text-align:center; margin-bottom:30px; color:#333; }
 .card { background:white; padding:20px; border-radius:10px; margin-bottom:30px; box-shadow:0 4px 10px rgba(0,0,0,0.1);}
-table { width:100%; border-collapse:collapse; margin-top:10px; }
-th, td { border:1px solid #ccc; padding:8px; text-align:center; }
-th { background:#007bff; color:white; }
-.green{color:green;font-weight:bold;}
-.orange{color:orange;font-weight:bold;}
-.red{color:red;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -23,81 +17,85 @@ th { background:#007bff; color:white; }
 
 <div class="card">
 <h3>📈 Taux d’atteinte (Calcul)</h3>
-<table id="tableCalcul"></table>
+<div id="tableCalcul"></div>
 </div>
 
 <div class="card">
 <h3>🎯 Objectifs</h3>
-<table id="tableObjectifs"></table>
+<div id="tableObjectifs"></div>
 </div>
 
 <div class="card">
 <h3>🚀 Réalisations</h3>
-<table id="tableRealisations"></table>
+<div id="tableRealisations"></div>
 </div>
 
 <div class="card">
 <h3>📊 Graphique Total Bières vs Total Vin</h3>
-<canvas id="chart"></canvas>
+<div id="chart_div"></div>
 </div>
 
 <script>
-// 🔹 Remplace par ton lien Apps Script
-const appsScriptURL = "https://script.google.com/macros/s/AKfycbx25ykoacsMwqsWZKbAJc16zMetju-wVlAiGgKhVMB4cCWesmuiiNCVFX5LPqOVGM4KCA/exec";
+google.charts.load('current', {'packages':['table','corechart']});
+google.charts.setOnLoadCallback(drawAll);
 
-function fillTable(data, tableId, isPercent=false){
-    const table = document.getElementById(tableId);
-    table.innerHTML = "";
-    if(!data || data.length===0) return;
+function drawAll() {
+  // ---- TABLE CALCUL ----
+  var queryCalcul = new google.visualization.Query(
+    'https://docs.google.com/spreadsheets/d/1Vo4SDCb_udwvpx10lucyxWeiFiaDy-LhNjw0cB5cNOM/gviz/tq?sheet=Calcul&headers=1'
+  );
+  queryCalcul.send(function(response){
+    if(response.isError()){ console.error(response.getMessage()); return; }
+    var data = response.getDataTable();
+    var table = new google.visualization.Table(document.getElementById('tableCalcul'));
+    table.draw(data, {showRowNumber: true, width:'100%', height:'100%'});
+  });
 
-    // En-têtes
-    let headerRow = "<tr>";
-    Object.keys(data[0]).forEach(k=> headerRow += `<th>${k}</th>`);
-    headerRow += "</tr>";
-    table.innerHTML += headerRow;
+  // ---- TABLE OBJECTIFS ----
+  var queryObj = new google.visualization.Query(
+    'https://docs.google.com/spreadsheets/d/1Vo4SDCb_udwvpx10lucyxWeiFiaDy-LhNjw0cB5cNOM/gviz/tq?sheet=Objectifs&headers=1'
+  );
+  queryObj.send(function(response){
+    if(response.isError()){ console.error(response.getMessage()); return; }
+    var data = response.getDataTable();
+    var table = new google.visualization.Table(document.getElementById('tableObjectifs'));
+    table.draw(data, {showRowNumber: true, width:'100%', height:'100%'});
+  });
 
-    // Lignes
-    data.forEach(row=>{
-        let rowHTML = "<tr>";
-        Object.values(row).forEach(cell=>{
-            if(isPercent && typeof cell==="number"){
-                let color = cell >= 100 ? "green" : (cell >= 80 ? "orange" : "red");
-                rowHTML += `<td class="${color}">${cell.toFixed(2)}%</td>`;
-            } else {
-                rowHTML += `<td>${cell}</td>`;
-            }
-        });
-        rowHTML += "</tr>";
-        table.innerHTML += rowHTML;
+  // ---- TABLE REALISATIONS ----
+  var queryReal = new google.visualization.Query(
+    'https://docs.google.com/spreadsheets/d/1Vo4SDCb_udwvpx10lucyxWeiFiaDy-LhNjw0cB5cNOM/gviz/tq?sheet=Réalisations&headers=1'
+  );
+  queryReal.send(function(response){
+    if(response.isError()){ console.error(response.getMessage()); return; }
+    var data = response.getDataTable();
+    var table = new google.visualization.Table(document.getElementById('tableRealisations'));
+    table.draw(data, {showRowNumber: true, width:'100%', height:'100%'});
+
+    // ---- CHART TOTAL BIERES vs TOTAL VIN ----
+    var chartData = new google.visualization.DataTable();
+    chartData.addColumn('string','Commerciale');
+    chartData.addColumn('number','Total Bières');
+    chartData.addColumn('number','Total Vin');
+
+    for(var i=0;i<data.getNumberOfRows();i++){
+      chartData.addRow([
+        data.getValue(i,1),   // Commerciale
+        data.getValue(i,6),   // Total Bières
+        data.getValue(i,8)    // Total Vin
+      ]);
+    }
+
+    var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+    chart.draw(chartData, {
+      height: 400,
+      colors: ['#36A2EB','#FF6384'],
+      legend: { position: 'top' },
+      hAxis: { title: 'Commerciale' },
+      vAxis: { title: 'Montant' }
     });
+  });
 }
-
-// 🔹 Charger les données live depuis Apps Script
-fetch(appsScriptURL)
-.then(res=>res.json())
-.then(json=>{
-    fillTable(json.Calcul,"tableCalcul",true);
-    fillTable(json.Objectifs,"tableObjectifs");
-    fillTable(json.Réalisations,"tableRealisations");
-
-    // 🔹 Graphique
-    const labels = json.Calcul.map(r=>r.Commerciale);
-    const totalB = json.Calcul.map(r=>r["Total Bières"]);
-    const totalV = json.Calcul.map(r=>r["Total Vin"]);
-
-    new Chart(document.getElementById("chart"),{
-        type:"bar",
-        data:{
-            labels:labels,
-            datasets:[
-                {label:"Total Bières", data:totalB, backgroundColor:"rgba(54,162,235,0.7)"},
-                {label:"Total Vin", data:totalV, backgroundColor:"rgba(255,99,132,0.7)"}
-            ]
-        },
-        options:{responsive:true, plugins:{legend:{position:"top"}}, scales:{y:{beginAtZero:true}}}
-    });
-})
-.catch(err=>console.error("Erreur fetch Apps Script :", err));
 </script>
 
 </body>
